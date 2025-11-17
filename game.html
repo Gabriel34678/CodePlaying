@@ -1,0 +1,2797 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodePlaying</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEJQ3PhL2J5Hj3Kt6k8Q9sP2Fd5Tz0V4b22P7S/58AhFh0z9e57kBhlbxE+vq" crossorigin="anonymous">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .hitbox {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.3); /* vermelho transparente */
+            border: 1px solid red; /* borda só pra ficar visível */
+            z-index: 1000; /* acima de tudo */
+            pointer-events: none; /* não atrapalha clique ou colisão */
+        }
+
+
+        .scene {
+            position: relative;
+            width: 1000px;
+            height: 600px;
+            border: 5px solid black;
+            overflow: hidden;
+            display: none; /* Oculto por padrão */
+            /* transition: opacity 0.5s ease; */ /* Descomente para fade */
+        }
+        .scene.active {
+            display: block;
+            opacity: 1;
+        }
+        .scene.fade-out {
+            opacity: 0;
+        }
+        #player {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: rgb(147, 14, 209); /* Quadrado vermelho */
+            z-index: 2;
+        }
+        .platform {
+            position: absolute;
+            border-radius: 5px;
+            z-index: 1;
+        }
+        /* Cenário 1: Floresta */
+        #scene1 {
+            background: linear-gradient(to top, #355e3b 0%, #4f7942 40%, #88b04b 100%);
+        }
+        #scene1 .platform {
+            background-color: #8B4513;
+            border: 2px solid #654321;
+        }
+        .tree {
+            position: absolute;
+            bottom: 0;
+            width: 60px;
+            background: #3e2723;
+            border-radius: 10px;
+            z-index: 0;
+        }
+        .tree::before {
+            content: "";
+            position: absolute;
+            bottom: 80%;
+            left: -30px;
+            width: 120px;
+            height: 100px;
+            background: radial-gradient(circle at center, #2e7d32 40%, #1b5e20 100%);
+            border-radius: 50%;
+        }
+
+    
+
+        #terra {
+            position: absolute;
+            background-color: #654321; /* cor da terra */
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        /* Graminha no topo */
+        #terra::before {
+            content: '';
+            position: absolute;
+            top: -5px; /* um pouco acima da plataforma */
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(to top, #2e8b57 0%, #32cd32 50%, #1b5e20 100%);
+            border-radius: 3px;
+            z-index: 2;
+        }
+
+        .placa {
+            position: absolute;
+            border: 2px solid #654321;
+            padding: 15px;
+            background-color: #c06905;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 40px;
+            height: 12px;
+        }
+
+        .cabo {
+            position: absolute;
+            border: 2px solid #654321;
+            background-color: #c06905;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 9px;
+            height: 40px;
+        }
+
+         .quest {
+            position: absolute;
+            color: #FFD700; /* Amarelo dourado */
+            border: 4px solid #FFD700; /* Borda amarela */
+            border-radius: 0; /* Bordas retas para pixelado */
+            background-color: rgba(255, 215, 0, 0.1); /* Fundo sutil */
+            box-shadow: 0 0 5px #FFD700; /* Sombra para brilho */
+            image-rendering: pixelated; /* Força renderização pixelada */
+            transform: scale(1); /* Mantém escala para pixelado */
+            width: 36px;
+            height: 10px;
+        }
+
+        #interface {
+            position: absolute;
+            border: 4px solid #fff; /* Borda branca grossa para "tela" */
+            border-radius: 0;
+            top: 5%;
+            left: 5%;
+            width: 90%;
+            height: 90%;
+            background-color: rgb(0, 0, 0);
+            z-index: 10000;
+            display: none;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Cenário 2: Deserto */
+        #scene2 {
+            background: linear-gradient(to top, #daa520 0%, #f4a460 40%, #ffd700 100%);
+        }
+        #scene2 .platform {
+            background-color: #deb887;
+            border: 2px solid #cd853f;
+        }
+        .cactus {
+            position: absolute;
+            bottom: 0;
+            width: 20px;
+            height: 60px;
+            background-color: #228b22;
+            border-radius: 10px;
+            z-index: 0;
+        }
+        .cactus::before {
+            content: '';
+            position: absolute;
+            bottom: 80%;
+            left: -15px;
+            width: 50px;
+            height: 20px;
+            background-color: #32cd32;
+            border-radius: 50%;
+        }
+
+        .sun {
+            position: absolute;
+            top: 50px;
+            right: 80px;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at center, #fff700 0%, #ffbb00 60%, #ff9900 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 50px 15px rgba(255, 255, 0, 0.5);
+        }
+        /* Cenário 3: Montanha */
+        #scene3 {
+             background: linear-gradient(to top, #87CEEB 0%, #B0E0E6 100%); /* Céu azul */
+        }
+        #scene3 .platform {
+            background-color: #0685ac;
+            border: 2px solid #2f454f;
+        }
+           
+            .mountain {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 350px;
+            background: linear-gradient(to top, #6E6E6E 0%, #A9A9A9 70%, #D3D3D3 100%);
+            clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+            box-shadow: 0 -10px 60px rgba(0,0,0,0.2);
+        }
+
+        /* Pico de gelo */
+        .snow-cap {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 350px;
+            background: linear-gradient(to bottom, #fff 0%, #f8f8f8 40%, transparent 100%);
+            clip-path: polygon(35% 20%, 50% 0%, 65% 20%, 60% 35%, 50% 25%, 40% 35%);
+            opacity: 0.9;
+        }
+
+        /* Grama e Terra */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(#228B22 0%, #228B22 60%, #654321 60%, #654321 100%);
+            border-top: 3px solid #1E7B1E;
+        }
+
+        /* Nuvens */
+        .cloud {
+            position: absolute;
+            background: #fff;
+            border-radius: 50px;
+            width: 120px;
+            height: 60px;
+            opacity: 0.9;
+            top:50px;
+            box-shadow:
+            40px 10px 0 0 #fff,
+            80px 0px 0 0 #fff,
+            20px -20px 0 0 #fff;
+            animation: moveClouds 60s linear infinite;
+        }
+
+        @keyframes moveClouds {
+            0% { transform: translateX(-200px); }
+            100% { transform: translateX(120vw); }
+        }
+
+        .cloud:nth-child(1) {
+            top: 80px;
+            left: 0;
+            animation-delay: 0s;
+            transform: scale(1);
+        }
+        .cloud:nth-child(2) {
+            top: 150px;
+            left: -300px;
+            animation-delay: 10s;
+            transform: scale(1.2);
+        }
+        .cloud:nth-child(3) {
+            top: 50px;
+            left: -600px;
+            animation-delay: 25s;
+            transform: scale(0.9);
+        }
+                        
+        
+    </style>
+</head>
+<body>
+
+
+            
+
+
+    <!-- Overlay de Game Over (criado via JS, mas pode deixar vazio aqui) -->
+    <div id="gameOverOverlay" style="display: none;"></div>
+
+    <!-- Cenário 1: Floresta -->
+    <div id="scene1" class="scene active">
+        <!-- Plataformas -->
+
+                <!-- Mensagem de Controles -->
+        <div id="tutorial" style="
+            position: absolute;
+            top: 500px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.85);
+            color: #fff;
+            padding: 15px 20px;
+            border: 2px solid #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            z-index: 9999;
+            width: 300px;
+            text-align: left;
+            border-radius: 5px;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 80%;">Controles: A e D = Direta-Esquerda W = Pular, Enter = Interagir</span>
+                    <button id="closeTutorial" style="
+                    background: rgb(143, 1, 1);
+                    border: 2px solid rgb(255, 255, 255);
+                    border-radius: 5px;
+                    color: #fff;
+                    font-weight: bold;
+                    cursor: pointer;
+                    width: 10%;
+                    height: 3%;
+                ">
+                    X
+                </button>
+
+        
+            </div>
+        </div>
+
+
+        <div class="platform" id="terra" style="left: 170px; top: 483px; width: 120px; height: 20px;"></div>
+        <div class="platform" id="terra" style="left: 130px; top: 290px; width: 110px; height: 20px;"></div>
+        <div class="platform" id="terra" style="left: 380px; top: 390px; width: 130px; height: 20px;"></div>
+        <div class="platform" id="terra" style="left: 350px; top: 175px; width: 200px; height: 20px;"></div>
+        <div class="platform" id="terra" style="left: 170px; top: 100px; width: 80px; height: 20px;"></div>
+        <div class="platform" id="terra" style="left: 700px; top: 150px; width: 200px; height: 20px;"></div>
+        <div class="platform"  style="left: 700px; top: 0px; width: 20px; height: 10px;"></div>
+        <div class="platform" id="terra" style="left: 650px; top: 350px; width: 150px; height: 20px;"></div>
+         <div class="platform" id="terra" style="left: 905px; top: 346px; width: 120px; height: 20px; z-index: 3;"></div>
+
+        <div class="platform porta" id="porta1" style="left: 700px; top: 14px; width: 20px; height: 132px; background-color: gray;"></div>
+        <div class="platform porta" id="porta2" style="left: 982px; top: 253px; width: 20px; height: 91px; background-color: gray;"></div>
+
+            <!-- botão -->
+            <div id="button1" 
+                style="left: 193px; top: 81px; width: 35px; height: 5px; 
+                background-color: rgb(235, 0, 0); position: absolute; border-radius: 5px; z-index: 1; border: 2px solid #654321;">
+            </div>
+
+            <div id="button-pressed" class="platform"
+                style="left: 193px; top: 83px; width: 35px; height: 3px;
+                background-color: rgb(121, 1, 1); position: absolute; border-radius: 5px; 
+                z-index: 1; display: none;">
+            </div>
+
+                <div class="platform" style="left: 185px; top: 88px; width: 50px; height: 10px; 
+                    background-color:gray; 
+                    position: absolute;
+                    border-radius: 5px;
+                    z-index: 1;"></div>
+            <!-- fim botão -->
+
+
+            <div class="platform" style="left: 977px; top: -10px; width: 20px; height: 260px; z-index: 2;"></div>
+       <!-- acesso p deserto -->      <div class="platform" style="left: 977px; top: 346px; width: 20px; height: 270px; z-index: 2;"></div> 
+        <div class="platform" style="left: -10px; top: 585px; width: 1010px; height: 20px; z-index: 1; background-color: rgb(2, 126, 2); 
+        border-color: #1b5e20;"></div>
+
+        <!-- botão 2 -->
+            <div id="button2" 
+                style="left: 800px; top: 130px; width: 35px; height: 5px; 
+                background-color: rgb(235, 0, 0); position: absolute; border-radius: 5px; z-index: 1; border: 2px solid #654321;">
+            </div>
+
+            <div id="button-pressed2" class="platform"
+                style="left: 800px; top: 132px; width: 35px; height: 3px;
+                background-color: rgb(121, 1, 1); position: absolute; border-radius: 5px; 
+                z-index: 1; display: none;">
+            </div>
+
+                <div class="platform" style="left: 793px; top: 137px; width: 50px; height: 10px; 
+                    background-color:gray; 
+                    position: absolute;
+                    border-radius: 5px;
+                    z-index: 1;"></div>
+            <!-- fim botão 2-->
+
+<!-- 
+              <div class="morte" style="
+        position: absolute;
+        left: 500px; /* posição X */
+        top: 500px;  /* posição Y */
+        width: 50px;
+        height: 50px;
+        background-color: red; /* pode ficar invisível se quiser */
+        z-index: 1000;
+    "></div> -->
+
+        <!-- Árvores -->
+        <div class="tree" style="left: 50px; height: 180px;"></div>
+        <div class="tree" style="left: 200px; height: 220px;"></div>
+        <div class="tree" style="left: 400px; height: 160px;"></div>
+        <div class="tree" style="left: 650px; height: 200px;"></div>
+        <div class="tree" style="left: 850px; height: 190px;"></div>
+
+            <div class="placa" id="placa" style="left: 410px; top: 100px; z-index: 1;">
+                <div class="quest" style="left: -2px; top: -2px; z-index: 2; width: 67px; height: 39px;">
+                    <div style=" font-family: 'Arial Narrow', 'Helvetica Condensed', sans-serif;
+            font-size: 35px; position: absolute;
+            color: #FFD700; /* Amarelo dourado */ left: 27.5px;">!</div>
+
+
+            </div>
+            </div>
+            <div class="cabo" style="left: 440px; top: 133px;">
+                <div class="quest" style="left: -2px; top: 9px; z-index: 1; width: 6px; height: 23px; box-shadow: 0 0 1px #FFD700;"></div>
+            </div>
+
+        <div id="interface">
+    <div class="quiz">
+        <!-- Caixa de Diálogo (Pergunta) -->
+        <div class="dialog-box">
+            <div id="pergunta-texto"></div>
+        </div>
+        
+        <!-- Menu de Opções -->
+        <div class="menu-opcoes">
+            <div class="cursor" id="cursor"></div>
+
+            <button class="opcao" data-correta="false">Opção 1</button>
+            <button class="opcao" data-correta="false">Opção 2</button>
+            <button class="opcao" data-correta="true">Opção 3</button>
+            <button class="opcao" data-correta="false">Opção 4</button>
+        </div>
+        
+        <!-- Feedback (aparece após escolher) -->
+        <div id="feedback" class="feedback" style="display: none;"></div>
+        
+        <!-- Botão Próxima (aparece após feedback) -->
+        <button id="proxima" class="proxima-btn" style="display: none;">Próxima</button>
+    </div>
+
+    <!-- Tela de Pontuação (oculta inicialmente) -->
+    <div class="pontuacao" id="telaPontuacao" style="display: none;">
+        <div class="dialog-box">
+            <div id="pontuacao-texto"></div>
+        </div>
+        <button id="fechar" class="fechar-btn">Finalizar Questionário</button>
+    </div>
+
+    <style>
+        .quiz {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0px;
+            padding: 20px;
+            background-color: #000; /* Fundo preto */
+            font-family: 'Courier New', monospace; /* Fonte pixelada/monospace para simular Determination */
+            color: #fff;
+            text-align: center;
+        }
+
+        /* Caixa de Diálogo */
+        .dialog-box {
+            background-color: #000; /* Fundo preto */
+            border: 6px solid #fff; /* Borda branca grossa, estilo Undertale */
+            border-radius: 0; /* Pixelado */
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 100px;
+            position: relative;
+        }
+
+        #pergunta-texto {
+            font-size: 18px;
+            line-height: 1.5;
+            color: #fff; /* Texto branco */
+            text-align: left; /* Justificado à esquerda, como diálogos */
+            white-space: pre-wrap; /* Para animação de digitação */
+        }
+
+        /* Menu de Opções */
+        .menu-opcoes {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 90%;
+            margin-left: 40px;
+        }
+
+        .opcao {
+            background-color: transparent;
+            border: 2px solid #fff; /* Borda branca */
+            color: #fff;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            border-radius: 0; /* Pixelado */
+        }
+
+        .opcao:hover {
+            background-color: #ffff00; /* Amarelo vibrante ao hover */
+            color: #000;
+        }
+        .cursor {
+            position: absolute;
+            left: -30px;
+            top: 10px;
+            font-size: 20px;
+            color: #ffff00; /* amarelo */
+            transition: top 0.3s ease;
+            pointer-events: none;
+        }
+        .cursor::before {
+            content: "►";
+        }
+
+
+        /* Feedback */
+        .feedback {
+            margin: 20px 0;
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .feedback.correto {
+            color: #00ff00; /* Verde vibrante */
+        }
+
+        .feedback.incorreto {
+            color: #ff0000; /* Vermelho vibrante */
+        }
+
+        /* Botão Próxima */
+        .proxima-btn {
+            background-color: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0;
+            margin-top: 20px;
+        }
+
+        .proxima-btn:hover {
+            background-color: #ffff00;
+            color: #000;
+        }
+
+        /* Tela de Pontuação */
+        .pontuacao {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0px;
+            padding: 20px;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            text-align: center;
+        }
+
+        #pontuacao-texto {
+            font-size: 24px;
+            line-height: 1.5;
+            color: #fff;
+            text-align: center;
+        }
+
+        .fechar-btn {
+            background-color: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0;
+            margin-top: 20px;
+        }
+
+        .fechar-btn:hover {
+            background-color: #ffff00;
+            color: #000;
+        }
+
+        /* Responsividade (para mobile) */
+        @media (max-width: 768px) {
+            .quiz, .pontuacao {
+                max-width: 90%;
+                padding: 10px;
+            }
+            .dialog-box {
+                padding: 15px;
+            }
+            .opcao {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</div>
+
+    <div class="platform porta" id="porta3" style="left: 258px; top: 2px; width: 10px; height: 100px; background-color: rgb(156, 117, 11);  border: 4px solid #FFD700;"></div>
+
+
+
+    </div>
+    <!-- Cenário 2: Deserto -->
+    <div id="scene2" class="scene">
+        <div class="platform" style="left: -10px; top: 253px; width: 20px; height: 91px; background-color: gray;"></div>
+         <div class="platform" style="left: -5px; top: 346px; width: 780px; height: 20px; z-index: 3;"></div>
+         <div class="platform" style="left: -2px; top: -10px; width: 20px; height: 260px; z-index: 2;"></div>
+            <div class="platform" style="left: -2px; top: 346px; width: 20px; height: 270px; z-index: 2;"></div>
+         <div class="sun"></div>
+
+        <style>
+            
+  .cacto {
+    position: relative;
+    width: 40px;
+    height: 120px;
+    background: green;
+    border-radius: 20px;
+  }
+
+  .cacto::before {
+    content: "";
+    position: absolute;
+    left: -20px;
+    top: 20px;
+    width: 20px;
+    height: 60px;
+    background: rgb(1, 136, 1);
+    border-radius: 20px;
+  }
+
+  .cacto::after {
+    content: "";
+    position: absolute;
+    right: -20px;
+    top: 40px;
+    width: 20px;
+    height: 50px;
+    background: rgb(1, 136, 1);
+    border-radius: 20px;
+  }
+        </style>
+                     <div class="cacto" style="left:70px; top:475px;"></div>
+         <!-- Borda superior -->
+        <div class="platform" style="left: -2px; top: -2px; width: 1000px; height: 25px; z-index:4;"></div>
+        
+        <!-- Borda direita -->
+        <div class="platform" style="left: 977px; top: -100px; width: 20px; height: 350px; z-index: 5;"></div>
+        <div class="platform" style="left: 977px; top: 346px; width: 20px; height: 350px; z-index: 11;"></div>
+        
+        <!-- Borda inferior -->
+        <div class="platform" style="left: -2px; top: 575px; width: 1000px; height: 25px; z-index: 4;"></div>
+        
+        <!-- Estruturas pendentes do topo (área amarela) -->
+        <div class="platform" style="left: 260px; top: 27px; width: 20px; height: 55px;"></div>
+        <div class="platform" style="left: 630px; top: 27px; width: 20px; height: 50px;"></div>
+        
+        <!-- Plataformas horizontais superiores com pilares (área amarela clara) -->
+        <div class="platform" style="left: 160px; top: 90px; width: 20px; height: 60px;"></div>
+        
+        <div class="platform" style="left: 370px; top: 113px; width: 115px; height: 25px;"></div>
+        <div class="platform" style="left: 545px; top: 90px; width: 20px; height: 60px;"></div>
+        <div class="platform" style="left: 720px; top: 80px; width: 20px; height: 60px;"></div>
+        <div class="platform" style="left: 120px; top: 140px; width: 680px; height: 20px;"></div>
+        
+        <!-- Plataformas médias (área laranja claro) -->
+        <div class="platform" style="left: -2px; top: 230px; width: 335px; height: 20px;"></div>
+        <div class="platform" style="left: 445px; top: 230px; width: 555px; height: 20px; z-index: 5;"></div>
+        
+        <!-- Plataformas inferiores esquerda (área laranja/salmão) -->
+        
+        <div class="platform" style="left: 880px; top: 346px; width: 120px; height: 20px; z-index: 11;"></div>
+        
+        <!-- Grande estrutura inferior (área salmão escuro) -->
+        <div class="platform" style="left: 118px; top: 460px; width: 880px; height: 20px; z-index: 10;"></div>
+        
+        <!-- Buracos na estrutura inferior (espaços vazios) -->
+        <div class="platform" style="left: 118px; top: 472px; width: 20px; height: 40px;"></div>
+        
+        
+        <!-- <div class="platform" style="left: 440px; top: 472px; width: 20px; height: 40px;"></div> -->
+        
+        <!-- <div class="platform" style="left: 710px; top: 472px; width: 20px; height: 40px;"></div> -->
+        
+        
+        
+        <!-- Plataformas pequenas no fundo (área amarela escura) -->
+        <div class="platform" style="left: 270px; top: 543px; width: 20px; height: 30px;"></div>
+        
+        <div class="platform" style="left: 565px; top: 553px; width: 20px; height: 30px;"></div>
+
+         <!-- botão -->
+            <div id="button3" 
+                style="left: 412px; top: 92px; width: 35px; height: 5px; 
+                background-color: rgb(235, 0, 0); position: absolute; border-radius: 5px; z-index: 1; border: 2px solid #cd853f;">
+            </div>
+
+            <div id="button-pressed3" class="platform"
+                style="left: 412px; top: 94px; width: 35px; height: 3px;
+                background-color: rgb(121, 1, 1); position: absolute; border-radius: 5px; 
+                z-index: 1; display: none;">
+            </div>
+
+                <div class="platform" style="left: 404px; top: 100px; width: 50px; height: 10px; 
+                    background-color:gray; 
+                    position: absolute;
+                    border-radius: 5px;
+                    z-index: 1;"></div>
+            <!-- fim botão -->
+
+            <!-- botão -->
+            <div id="button4" 
+                style="left: 907px; top: 555px; width: 35px; height: 5px; 
+                background-color: rgb(235, 0, 0); position: absolute; border-radius: 5px; z-index: 1; border: 2px solid #cd853f;">
+            </div>
+
+            <div id="button-pressed4" class="platform"
+                style="left: 907px; top: 558px; width: 35px; height: 3px;
+                background-color: rgb(121, 1, 1); position: absolute; border-radius: 5px; 
+                z-index: 1; display: none;">
+            </div>
+
+                <div class="platform" style="left: 900px; top: 563px; width: 50px; height: 10px; 
+                    background-color:gray; 
+                    position: absolute;
+                    border-radius: 5px;
+                    z-index: 1;"></div>
+            <!-- fim botão -->
+
+             <div class="platform porta" id="porta5" style="left: 802px; top: 140px; width: 20px; height: 93px; background-color: gray; display: block;"></div>
+             <div class="platform porta" id="porta5_1" style="left: 680px; top: 25px; width: 20px; height:113px; background-color: gray; display: block;"></div>
+              <div class="platform porta" id="porta4" style="left: 722px; top: 368px; width: 20px; height: 91px; background-color: gray; display: block;"></div>
+
+                <div class="morte" style="
+                position: absolute;
+                left: 440px;  /* posição X */
+                top: 481.5px;   /* posição Y */
+                width: 20px;
+                height: 30px;
+                z-index: 1000;
+                clip-path: polygon(
+                    0% 0%,    /* canto superior esquerdo */
+                    100% 0%,  /* canto superior direito */
+                    50% 100%  /* ponta do espinho para baixo */
+                );
+                background-color: #deb887;
+                border: 2px solid #cd853f;
+            "></div>
+
+            <div class="morte" style="
+                position: absolute;
+                left: 710px;  /* posição X */
+                top: 481.5px;   /* posição Y */
+                width: 20px;
+                height: 30px;
+                z-index: 1000;
+                clip-path: polygon(
+                    0% 0%,    /* canto superior esquerdo */
+                    100% 0%,  /* canto superior direito */
+                    50% 100%  /* ponta do espinho para baixo */
+                );
+                background-color: #deb887;
+                border: 2px solid #cd853f;
+            "></div>
+
+<div class="platform porta" id="porta6" style="left: 985px; top: 253px; width: 20px; height: 91px; background-color: gray; display: block;"></div> 
+            
+
+
+
+            <div class="placa" id="placa2" style="left: 870px; top: 155px; z-index: 1;">
+            <div class="quest" style="left: -2px; top: -2px; z-index: 2; width: 67px; height: 39px;">
+                <div style="font-family: 'Arial Narrow', 'Helvetica Condensed', sans-serif; font-size: 35px; position: absolute; color: #FFD700; left: 27.5px;">!</div>
+            </div>
+            </div>
+            <div class="cabo" id="cabo2" style="left: 900px; top: 189px;">
+            <div class="quest" style="left: -2px; top: 9px; z-index: 1; width: 6px; height: 23px; box-shadow: 0 0 1px #FFD700;"></div>
+            </div>
+
+            <div id="interface2" class="interface" style="display: none;">
+            <div class="quiz2">
+                <div class="dialog-box2">
+                <div id="pergunta-texto2"></div>
+                </div>
+
+                <div class="menu-opcoes2">
+                <div class="cursor2" id="cursor2">▶</div>
+                <button class="opcao2">Opção 1</button>
+                <button class="opcao2">Opção 2</button>
+                <button class="opcao2">Opção 3</button>
+                <button class="opcao2">Opção 4</button>
+                </div>
+
+                <div id="feedback2" class="feedback2" style="display: none;"></div>
+                <button id="proxima2" class="proxima-btn2" style="display: none;">Próxima</button>
+            </div>
+
+            <div id="telaPontuacao2" class="pontuacao2" style="display: none;">
+                <div class="dialog-box2">
+                <div id="pontuacao-texto2"></div>
+                </div>
+                <button id="fechar2" class="fechar-btn2">Finalizar Questionário</button>
+            </div>
+            </div>
+
+    <style>
+         #interface2 {
+            position: absolute;
+            border: 4px solid #fff; /* Borda branca grossa para "tela" */
+            border-radius: 0;
+            top: 5%;
+            left: 5%;
+            width: 90%;
+            height: 90%;
+            background-color: rgb(0, 0, 0);
+            z-index: 10000;
+            display: none;
+            padding: 10px;
+            box-sizing: border-box;
+            pointer-events: all;
+        }
+
+            #interface2 * {
+            pointer-events: auto;
+            }
+
+         
+        .quiz2 {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0px;
+            padding: 20px;
+            background-color: #000; /* Fundo preto */
+            font-family: 'Courier New', monospace; /* Fonte pixelada/monospace para simular Determination */
+            color: #fff;
+            text-align: center;
+        }
+
+        /* Caixa de Diálogo */
+        .dialog-box2 {
+            background-color: #000; /* Fundo preto */
+            border: 6px solid #fff; /* Borda branca grossa, estilo Undertale */
+            border-radius: 0; /* Pixelado */
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 100px;
+            position: relative;
+        }
+
+        #pergunta-texto2 {
+            font-size: 18px;
+            line-height: 1.5;
+            color: #fff; /* Texto branco */
+            text-align: left; /* Justificado à esquerda, como diálogos */
+            white-space: pre-wrap; /* Para animação de digitação */
+        }
+
+        /* Menu de Opções */
+        .menu-opcoes2 {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 90%;
+            margin-left: 40px;
+        }
+
+        .opcao2 {
+            background-color: transparent;
+            border: 2px solid #fff; /* Borda branca */
+            color: #fff;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            border-radius: 0; /* Pixelado */
+        }
+
+        .opcao2:hover {
+            background-color: #ffff00; /* Amarelo vibrante ao hover */
+            color: #000;
+        }
+
+        
+        .cursor2 {
+            position: absolute;
+            left: -30px;
+            top: 10px; /* Posição inicial na primeira opção */
+            font-size: 20px;
+            color: #ffff00; /* Amarelo */
+            transition: top 0.3s ease; /* Animação suave ao mover */
+            pointer-events: none;
+        }
+
+        /* Feedback */
+        .feedback2 {
+            margin: 20px 0;
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .feedback2.correto {
+            color: #00ff00; /* Verde vibrante */
+        }
+
+        .feedback2.incorreto {
+            color: #ff0000; /* Vermelho vibrante */
+        }
+
+        /* Botão Próxima */
+        .proxima-btn2 {
+            background-color: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0;
+            margin-top: 20px;
+        }
+
+        .proxima-btn2:hover {
+            background-color: #ffff00;
+            color: #000;
+        }
+
+        /* Tela de Pontuação */
+        .pontuacao2 {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0px;
+            padding: 20px;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            text-align: center;
+        }
+
+        #pontuacao-texto2 {
+            font-size: 24px;
+            line-height: 1.5;
+            color: #fff;
+            text-align: center;
+        }
+
+        .fechar-btn2{
+            background-color: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0;
+            margin-top: 20px;
+        }
+
+        .fechar-btn2:hover {
+            background-color: #ffff00;
+            color: #000;
+        }
+
+        /* Responsividade (para mobile) */
+        @media (max-width: 768px) {
+            .quiz2, .pontuacao2 {
+                max-width: 90%;
+                padding: 10px;
+            }
+            .dialog-box2 {
+                padding: 15px;
+            }
+            .opcao2 {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</div>
+
+</div>
+
+    <!-- Cenário 3: Montanha -->
+    <div id="scene3" class="scene">
+     <div class="mountain"></div>
+     <div class="snow-cap"></div>
+
+  <!-- Nuvens -->
+  <div class="cloud"></div>
+  <div class="cloud"></div>
+  <div class="cloud"></div>
+
+  <!-- Chão -->
+  <div class="ground"></div>
+
+
+<div class="platform" style="left: -20px; top: 346px; width: 220px; height: 20px; z-index: 4;"></div>
+<div class="platform" style="left: -2px; top: -10px; width: 20px; height: 260px; z-index: 2;"></div>
+            <div class="platform" style="left: -2px; top: 346px; width: 20px; height: 270px; z-index: 2;"></div>
+<div class="platform" style="left: -10px; top: 253px; width: 20px; height: 91px; background-color: gray;"></div>
+
+
+<div class="platform" style="left: -2px; top: 646px; width: 20px; height: 270px; z-index: 2;"></div>
+<div class="platform" style="left: 000px; top: 146px; width: 270px; height: 20px; z-index: 2; visibility: hidden;"></div>
+<div class="platform" style="left: 200px; top: 146px; width: 20px; height: 270px; z-index: 2; visibility: hidden;"></div>
+
+
+        <div class="placa" id="placa3" style="left: 150px; top: 278px; z-index: 1;" >
+            <div class="quest" style="left: -2px; top: -2px; z-index: 2; width: 67px; height: 39px;">
+                <div style="font-family: 'Arial Narrow', 'Helvetica Condensed', sans-serif; font-size: 35px; position: absolute; color: #FFD700; left: 27.5px;">!</div>
+            </div>
+            </div>
+            <div class="cabo" id="cabo3" style="left: 180px; top: 310px;">
+            <div class="quest" style="left: -2px; top: 9px; z-index: 1; width: 6px; height: 23px; box-shadow: 0 0 1px #FFD700;"></div>
+            </div>
+
+            <div id="interface3" class="interface" style="display: none;">
+            <div class="quiz3">
+                <div class="dialog-box3">
+                <div id="pergunta-texto3"></div>
+                </div>
+
+                <div class="menu-opcoes3">
+                <div class="cursor3" id="cursor3">▶</div>
+                <button class="opcao3">Opção 1</button>
+                <button class="opcao3">Opção 2</button>
+                <button class="opcao3">Opção 3</button>
+                <button class="opcao3">Opção 4</button>
+                </div>
+
+                <div id="feedback3" class="feedback3" style="display: none;"></div>
+                <button id="proxima3" class="proxima-btn3" style="display: none;">Próxima</button>
+            </div>
+
+            <div id="telaPontuacao3" class="pontuacao3" style="display: none;">
+                <div class="dialog-box3">
+                <div id="pontuacao-texto3"></div>
+                </div>
+                <button id="fechar3" class="fechar-btn3">Finalizar Questionário</button>
+                <h1>Obrigado por jogar!! Beta 1.0</h1>
+            </div>
+            </div>
+
+    <style>
+    /* Interface */
+    #interface3 {
+        position: absolute;
+        border: 4px solid #fff;
+        border-radius: 0;
+        top: 5%;
+        left: 5%;
+        width: 90%;
+        height: 90%;
+        background-color: rgb(0, 0, 0);
+        z-index: 10000;
+        display: none;
+        padding: 10px;
+        box-sizing: border-box;
+        pointer-events: all;
+    }
+
+    #interface3 * {
+        pointer-events: auto;
+    }
+
+    /* Quiz */
+    .quiz3 {
+        position: relative;
+        max-width: 100%;
+        max-height: 100%;
+        margin: 0px;
+        padding: 20px;
+        background-color: #000;
+        font-family: 'Courier New', monospace;
+        color: #fff;
+        text-align: center;
+    }
+
+    .dialog-box3 {
+        background-color: #000;
+        border: 6px solid #fff;
+        border-radius: 0;
+        padding: 20px;
+        margin-bottom: 20px;
+        min-height: 100px;
+        position: relative;
+    }
+
+    #pergunta-texto3 {
+        font-size: 18px;
+        line-height: 1.5;
+        color: #fff;
+        text-align: left;
+        white-space: pre-wrap;
+    }
+
+    /* Menu de Opções */
+    .menu-opcoes3 {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 90%;
+        margin-left: 40px;
+    }
+
+    .opcao3 {
+        background-color: transparent;
+        border: 2px solid #fff;
+        color: #fff;
+        padding: 10px 15px;
+        font-size: 16px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s;
+        border-radius: 0;
+    }
+
+    .opcao3:hover {
+        background-color: #ffff00;
+        color: #000;
+    }
+
+    .cursor3 {
+        position: absolute;
+        left: -30px;
+        top: 10px;
+        font-size: 20px;
+        color: #ffff00;
+        transition: top 0.3s ease;
+        pointer-events: none;
+    }
+
+    /* Feedback */
+    .feedback3 {
+        margin: 20px 0;
+        margin-top: 20px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .feedback3.correto {
+        color: #00ff00;
+    }
+
+    .feedback3.incorreto {
+        color: #ff0000;
+    }
+
+    /* Botão Próxima */
+    .proxima-btn3 {
+        background-color: #000;
+        border: 2px solid #fff;
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 0;
+        margin-top: 20px;
+    }
+
+    .proxima-btn3:hover {
+        background-color: #ffff00;
+        color: #000;
+    }
+
+    /* Tela de Pontuação */
+    .pontuacao3 {
+        position: relative;
+        max-width: 100%;
+        max-height: 100%;
+        margin: 0px;
+        padding: 20px;
+        background-color: #000;
+        font-family: 'Courier New', monospace;
+        color: #fff;
+        text-align: center;
+    }
+
+    #pontuacao-texto3 {
+        font-size: 24px;
+        line-height: 1.5;
+        color: #fff;
+        text-align: center;
+    }
+
+    .fechar-btn3 {
+        background-color: #000;
+        border: 2px solid #fff;
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 0;
+        margin-top: 20px;
+    }
+
+    .fechar-btn3:hover {
+        background-color: #ffff00;
+        color: #000;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .quiz3, .pontuacao3 {
+            max-width: 90%;
+            padding: 10px;
+        }
+        .dialog-box3 {
+            padding: 15px;
+        }
+        .opcao3 {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+    }
+</style>
+
+
+
+</div>
+
+
+
+       
+
+    <!-- Player fora dos cenários, será movido dinamicamente -->
+    <div id="player"></div>
+
+    
+
+    <style>
+                    #gameOverOverlay {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.8);
+                color: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 20000;
+                font-family: Arial, sans-serif;
+                font-size: 28px;
+            }
+
+            #gameOverOverlay div {
+                text-align: center;
+            }
+
+            #gameOverOverlay button {
+                padding: 8px 12px;
+                cursor: pointer;
+                margin-top: 12px;
+            }
+
+            /* Lava ------------------------------------------------------------------*/ 
+        #lava {
+        position: absolute;
+        bottom: -50px; /* começa fora da tela */
+        left: 0;
+        width: 100%;
+        height: 50px;
+        background: linear-gradient(to top, #ff4500, #ffae42);
+        box-shadow: 0 0 20px #ff4500;
+        z-index: 50;
+        transition: bottom 0.1s linear; /* animação suave */
+        }
+
+        /* Efeito fogo no player */
+        .player-on-fire {
+        animation: fireEffect 0.3s infinite alternate;
+        background: linear-gradient(to top, orange, red);
+        filter: brightness(1.2);
+        border-color: orange;
+        }
+
+        @keyframes fireEffect {
+        0% { box-shadow: 0 0 4px #ff8000, 0 0 10px #ff4000; }
+        50% { box-shadow: 0 0 8px #ff8000, 0 0 16px #ff4000; }
+        100% { box-shadow: 0 0 12px #ff8000, 0 0 20px #ff4000; }
+        }
+
+
+    </style>
+
+
+
+
+<script>
+    const scenes = ['scene1', 'scene2', 'scene3'];
+    let currentSceneIndex = 0;
+    let currentScene = document.getElementById(scenes[currentSceneIndex]);
+    let player = document.getElementById('player');
+
+    function updatePlatforms() {
+        const platformElements = currentScene.querySelectorAll('.platform');
+        return Array.from(platformElements)
+            .filter(plat => plat.style.display !== "none")
+            .map(plat => ({
+                x: parseInt(plat.style.left || 0),
+                y: parseInt(plat.style.top || 0),
+                width: parseInt(plat.style.width || 0),
+                height: parseInt(plat.style.height || 0)
+            }));
+    }
+
+
+      function criarOverlayGameOver() {
+    const overlay = document.getElementById('gameOverOverlay');
+    if (!overlay) return;
+
+    overlay.innerHTML = `
+        <div>
+            <div style="font-size:48px;margin-bottom:12px;">GAME OVER</div>
+            <div id="gameOverDetails" style="white-space:pre-wrap;margin-bottom:14px;"></div>
+            <button id="gameOverClose">Fechar</button>
+        </div>
+    `;
+    overlay.style.display = 'flex';
+
+    document.getElementById('gameOverClose').addEventListener('click', () => {
+        overlay.style.display = 'none';
+        gameOverAtivo = false;
+        window.location.href='redir-tela-inicial.html';
+    });
+}
+
+// Função para mostrar os detalhes de pontuação, tempo e objetivos
+function mostrarGameOverDetalhes() {
+    const detalhes = document.getElementById('gameOverDetails');
+    if (!detalhes) return;
+
+    // Usa zero como fallback caso alguma variável não esteja definida
+    const pontuacaoTotal = (typeof pontuacao !== 'undefined' ? pontuacao : 0) +
+                           (typeof pontuacao2 !== 'undefined' ? pontuacao2 : 0) +
+                           (typeof pontuacao3 !== 'undefined' ? pontuacao3 : 0) ;
+    const maxPontuacao = (typeof perguntas !== 'undefined' ? perguntas.length : 0) +
+                         (typeof perguntas2 !== 'undefined' ? perguntas2.length : 0)+
+                           (typeof pontuacao3 !== 'undefined' ? perguntas3.length: 0) ;
+    const tempoFinal = ((Date.now() - (typeof tempoInicio !== 'undefined' ? tempoInicio : Date.now())) / 1000).toFixed(1);
+    const objetivos = typeof objetivosCompletos !== 'undefined' ? objetivosCompletos : 0;
+
+    detalhes.textContent = 
+        `Pontuação: ${pontuacaoTotal}/${maxPontuacao}\n` +
+        `Tempo: ${tempoFinal}s\n` +
+        `Pontos Extras: ${objetivos}`;
+}
+
+
+// Colisão AABB
+function rectsColidem(a, b) {
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+// Checagem de colisão com div#morte
+function checarMorteEGameOver() {
+    if (gameOverAtivo) return;
+
+    const playerEl = document.getElementById('player');
+    const mortes   = document.querySelectorAll('.morte'); // pega todas as divs "morte"
+
+    if (!playerEl || mortes.length === 0) return;
+
+    const rectP = playerEl.getBoundingClientRect();
+
+    mortes.forEach(morteEl => {
+        const rectM = morteEl.getBoundingClientRect();
+        if (rectsColidem(rectP, rectM)) {
+            mostrarGameOver();
+        }
+    });
+}
+ 
+
+
+
+   function salvarJogo() {
+    const pontuacaoTotal = (typeof pontuacao !== 'undefined' ? pontuacao : 0) +
+                           (typeof pontuacao2 !== 'undefined' ? pontuacao2 : 0) +
+                           (typeof pontuacao3 !== 'undefined' ? pontuacao3 : 0) ;
+    const tempoFinal = ((Date.now() - (typeof tempoInicio !== 'undefined' ? tempoInicio : Date.now())) / 1000).toFixed(1);
+    const objetivos = (typeof objetivosCompletos !== 'undefined' ? objetivosCompletos : 0);
+    const idUsuario = 1; // valor fixo para teste
+
+    console.log("Enviando dados:", {idUsuario, pontuacaoTotal, tempoFinal, objetivos});
+
+    fetch('salvar.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `idusuario=${idUsuario}&pontuacao=${pontuacaoTotal}&tempo_jogo=${tempoFinal}&objetivos_completos=${objetivos}&pl1=${pl1}&pl2=${pl2}&pl3=${pl3}`
+})
+.then(res => res.text()) // usa text() temporariamente
+.then(text => {
+    console.log("Resposta bruta do PHP:", text);
+    try {
+        const data = JSON.parse(text);
+        if (data.success) console.log('Jogo salvo com sucesso!');
+        else console.error('Erro ao salvar:', data.msg);
+    } catch(e) {
+        console.error('JSON inválido recebido:', e, text);
+    }
+})
+.catch(err => console.error("Erro de conexão:", err));
+
+
+}
+
+
+
+
+
+    function mostrarGameOver() {
+    if (gameOverAtivo) return;
+    gameOverAtivo = true;
+
+    criarOverlayGameOver();
+    mostrarGameOverDetalhes();
+    salvarJogo()
+}
+
+
+
+
+
+
+    let platforms = updatePlatforms();
+
+    let playerSpeed = 2;
+    let maxSpeed = 4;
+    let acceleration = 0.3;
+    let deceleration = 0.3;
+    let gravity = 0.5;
+    let jumpPower = 11;  // 11 default
+    let velocityX = 0;
+    let velocityY = 0;
+    let isJumping = false;
+    let onGround = false;
+    let direction = 0;
+    let leftPressed = false;
+    let rightPressed = false;
+    let interfaceAbertaUmaVez = false;
+
+    let button1Pressed = false;
+    let button2Pressed = false;
+    let button3Pressed = false;
+    let button4Pressed = false;
+    let porta51Removida = false; 
+
+    let porta1 = document.getElementById("porta1");
+    let porta2 = document.getElementById("porta2");
+    let porta4 = document.getElementById("porta4");
+    let porta5 = document.getElementById("porta5");
+    let porta51 = document.getElementById("porta5_1");
+
+    let pl1 = 0;
+    let pl2 = 0;
+    let pl3 = 0;
+
+
+    let interfaceOpen = false;
+    let gameOverAtivo = false;
+    let tempoInicio = Date.now();
+    let objetivosCompletos = 0; // valor inicial
+
+    const containerWidth = 1000;
+    const containerHeight = 600;
+
+    const tutorial = document.getElementById('tutorial');
+    const closeBtn = document.getElementById('closeTutorial');
+    closeBtn.addEventListener('click', () => {
+        tutorial.style.display = 'none';
+    });
+
+    function criarChaoLava() {
+    const lava = document.createElement('div');
+    lava.classList.add('lava', 'morte');
+    lava.style.position = 'absolute';
+    lava.style.left = '0';
+    lava.style.bottom = '0';
+    lava.style.width = '100%';
+    lava.style.height = '0px'; // começa com altura 0
+    lava.style.background = 'linear-gradient(to top, #ff4500, #ff6347)';
+    lava.style.zIndex = '9009';
+    currentScene.appendChild(lava);
+
+    let altura = 0;
+    const velocidade = 0.28; // quanto cresce a cada frame
+
+    const interval = setInterval(() => {
+        altura += velocidade;
+        lava.style.height = altura + 'px'; // aumenta a altura
+
+        if (altura >= window.innerHeight) {
+            clearInterval(interval); // para quando atingir o topo
+        }
+    }, 16); // 60fps
+}
+
+
+// OBJETIVOS------------------------------------------------------------
+    function criarBotaoObjetivos() {
+    // Evita criar múltiplos
+    if (document.getElementById('btnObjetivos')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'btnObjetivos';
+    btn.textContent = '⚑ Objetivos'; // ícone rústico
+    btn.style.position = 'absolute';
+    btn.style.top = '10px';
+    btn.style.left = '10px';
+    btn.style.backgroundColor = '#ffb366';
+    btn.style.border = 'none';
+    btn.style.padding = '8px 12px';
+    btn.style.borderRadius = '8px';
+    btn.style.cursor = 'pointer';
+    btn.style.fontWeight = 'bold';
+    btn.style.color = '#663300';
+    btn.style.zIndex = 9999;
+    btn.style.outline = 'none'; // remove borda branca ao clicar
+    btn.style.boxShadow = '2px 2px 6px rgba(0,0,0,0.3)';
+    btn.onmousedown = e => e.preventDefault(); // previne foco estranho ao clicar
+
+    const iface = document.createElement('div');
+    iface.id = 'interfaceObjetivos';
+    iface.style.position = 'absolute';
+    iface.style.top = '50px';
+    iface.style.left = '10px';
+    iface.style.width = '220px';
+    iface.style.backgroundColor = 'rgba(255, 255, 255, 0.97)';
+    iface.style.padding = '12px';
+    iface.style.borderRadius = '10px';
+    iface.style.boxShadow = '3px 3px 12px rgba(0,0,0,0.4)';
+    iface.style.display = 'none';
+    iface.style.zIndex = 10000; // sempre na frente
+    iface.style.pointerEvents = 'auto';
+    iface.innerHTML = `
+                       <ul style="margin:0; padding-left:18px; color:#333;">
+                        <li>Resolver todos os Quizzes</li>
+                        <li>Cruzar até o final do mapa</li>
+                        <li>Fazer o máximo de pontos</li>
+                        <li>Obs: Acertar todas as perguntas, 
+                            completar um quiz e avançar
+                            de nivel dão pontos extras!!</li>
+                       </ul>`;
+
+    btn.addEventListener('click', () => {
+        iface.style.display = iface.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Adiciona à cena atual
+    const cenaAtual = document.querySelector('.scene'); 
+    if (cenaAtual) {
+        cenaAtual.appendChild(btn);
+        cenaAtual.appendChild(iface);
+    }
+}
+
+function criarDivTemporaria() {
+    // Cria a div
+    const div = document.createElement('div');
+    div.className = 'platform'; // classe da div
+    div.style.left = '-20px';
+    div.style.top = '340px';
+    div.style.width = '220px';
+    div.style.height = '20px';
+    div.style.zIndex = '4';
+    div.style.position = 'absolute'; // garante posicionamento correto
+
+    // Adiciona a div ao body
+    document.body.appendChild(div);
+
+    // Remove a div após 3 segundos (3000 ms)
+    setTimeout(() => {
+        div.remove();
+    }, 3000);
+}
+
+function atualizarBotao() {
+    const cenaAtual = document.querySelector('.scene');
+    if (cenaAtual && !document.getElementById('btnObjetivos')) {
+        criarBotaoObjetivos();
+    }
+}
+
+//----------------------------------------------------------------------
+function updatePortas() {
+    if (porta1) porta1.style.display = button1Pressed ? "none" : "block";
+    if (porta2) porta2.style.display = (button1Pressed && button2Pressed) ? "none" : "block";
+    if (porta4) porta4.style.display = button3Pressed ? "none" : "block";
+    if (porta5) porta5.style.display = button4Pressed ? "none" : "block";
+
+    if (porta51) {
+        // só esconde se a flag estiver ativa
+        if (porta51Removida) porta51.style.display = "none";
+        else porta51.style.display = "block";
+    }
+}
+
+
+
+    function isColliding(rect1, rect2) {
+        return rect1.x < rect2.x + rect2.width &&
+            rect1.x + rect1.width > rect2.x &&
+            rect1.y < rect2.y + rect2.height &&
+            rect1.y + rect1.height > rect2.y;
+    }
+
+    function getOverlap(rect1, rect2) {
+        const overlapX = Math.min(rect1.x + rect1.width - rect2.x, rect2.x + rect2.width - rect1.x);
+        const overlapY = Math.min(rect1.y + rect1.height - rect2.y, rect2.y + rect2.height - rect1.y);
+        return { overlapX, overlapY };
+    }
+
+    function findGroundY(playerX, playerWidth) {
+        let groundY = containerHeight - player.offsetHeight;
+        for (let plat of platforms) {
+            const horizontalOverlap = playerX < plat.x + plat.width && playerX + playerWidth > plat.x;
+            if (horizontalOverlap && plat.y > groundY) {
+                groundY = plat.y - player.offsetHeight;
+            }
+        }
+        return groundY;
+    }
+
+    function saveGameState() {
+        const state = {
+            velocityX: velocityX,
+            velocityY: velocityY,
+            direction: direction,
+            leftPressed: leftPressed,
+            rightPressed: rightPressed,
+            onGround: onGround,
+            isJumping: isJumping
+        };
+        localStorage.setItem('gameState', JSON.stringify(state));
+    }
+
+    function loadGameState() {
+        const savedState = localStorage.getItem('gameState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            velocityX = state.velocityX || 0;
+            velocityY = state.velocityY || 0;
+            direction = state.direction || 0;
+            leftPressed = state.leftPressed || false;
+            rightPressed = state.rightPressed || false;
+            onGround = state.onGround || false;
+            isJumping = state.isJumping || false;
+            localStorage.removeItem('gameState');
+        }
+    }
+
+    function spawnPlayer() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const spawnX = parseInt(urlParams.get('spawnX')) || 35;
+        const spawnYParam = urlParams.get('spawnY');
+        let spawnY = (spawnYParam === 'auto' || !spawnYParam) ? findGroundY(spawnX, player.offsetWidth) : parseInt(spawnYParam) || 0;
+        
+        player.style.left = `${spawnX}px`;
+        player.style.top = `${spawnY}px`;
+        
+        loadGameState();
+        currentScene.appendChild(player);
+        criarBotaoObjetivos()
+    }
+
+    function switchScene(newIndex) {
+        saveGameState();
+        atualizarBotao();
+        let tempoRestantex = 0;
+        objetivosCompletos++;
+        porta51Removida = false;
+        currentScene.classList.remove('active');
+        currentSceneIndex = newIndex;
+        currentScene = document.getElementById(scenes[currentSceneIndex]);
+        currentScene.classList.add('active');
+        platforms = updatePlatforms();
+
+        button1Pressed = false;
+        button2Pressed = false;
+        button3Pressed = false;
+        button4Pressed = false;
+        
+        const button1 = document.getElementById("button1");
+        const buttonPressed1 = document.getElementById("button-pressed");
+        const button2 = document.getElementById("button2");
+        const buttonPressed2 = document.getElementById("button-pressed2");
+        const button3 = document.getElementById("button3");
+        const buttonPressed3 = document.getElementById("button-pressed3");
+        const button4 = document.getElementById("button4");
+        const buttonPressed4 = document.getElementById("button-pressed4");
+        
+        if (button1) button1.style.display = "block";
+        if (buttonPressed1) buttonPressed1.style.display = "none";
+        if (button2) button2.style.display = "block";
+        if (buttonPressed2) buttonPressed2.style.display = "none";
+        if (button3) button3.style.display = "block";
+        if (buttonPressed3) buttonPressed3.style.display = "none";
+        if (button4) button4.style.display = "block";
+        if (buttonPressed4) buttonPressed4.style.display = "none";
+
+
+        porta1 = document.getElementById("porta1");
+        porta2 = document.getElementById("porta2");
+        porta4 = document.getElementById("porta4");
+        porta5 = document.getElementById("porta5");
+        porta51 = document.getElementById("porta5_1");
+
+
+        updatePortas();
+        
+        platforms = updatePlatforms();
+        spawnPlayer();
+    }
+
+    window.addEventListener('load', spawnPlayer);
+
+    function checkCollisions(newX, newY) {
+        const playerRect = {
+            x: newX,
+            y: newY,
+            width: player.offsetWidth,
+            height: player.offsetHeight
+        };
+
+        let adjustedX = newX;
+        let adjustedY = newY;
+        let newVelocityX = velocityX;
+        let newVelocityY = velocityY;
+        let grounded = false;
+
+        for (let plat of platforms) {
+            const platRect = {
+                x: plat.x,
+                y: plat.y,
+                width: plat.width,
+                height: plat.height
+            };
+
+            if (isColliding(playerRect, platRect)) {
+                const { overlapX, overlapY } = getOverlap(playerRect, platRect);
+                if (overlapX < overlapY) {
+                    if (velocityX > 0 && playerRect.x < platRect.x) {
+                        adjustedX = platRect.x - playerRect.width;
+                        if (Math.abs(velocityX) > 0.5) newVelocityX = 0;
+                    } else if (velocityX < 0 && playerRect.x + playerRect.width > platRect.x + platRect.width) {
+                        adjustedX = platRect.x + platRect.width;
+                        if (Math.abs(velocityX) > 0.5) newVelocityX = 0;
+                    }
+                } else {
+                    if (velocityY > 0) {
+                        adjustedY = platRect.y - playerRect.height;
+                        newVelocityY = 0;
+                        grounded = true;
+                    } else if (velocityY < 0) {
+                        adjustedY = platRect.y + platRect.height;
+                        newVelocityY = 0;
+                    }
+                }
+            }
+        }
+
+        if (adjustedX < 0) {
+            if (currentSceneIndex > 0) {
+                switchScene(currentSceneIndex - 1);
+                adjustedX = containerWidth - playerRect.width;
+            } else {
+                adjustedX = 0;
+                newVelocityX = 0;
+            }
+        } else if (adjustedX + playerRect.width > containerWidth) {
+            if (currentSceneIndex < scenes.length - 1) {
+                switchScene(currentSceneIndex + 1);
+                adjustedX = 0;
+            } else {
+                adjustedX = containerWidth - playerRect.width;
+                newVelocityX = 0;
+            }
+        }
+
+        if (adjustedY + playerRect.height >= containerHeight) {
+            adjustedY = containerHeight - playerRect.height;
+            newVelocityY = 0;
+            grounded = true;
+        }
+        if (adjustedY < 0) {
+            adjustedY = 0;
+            newVelocityY = 0;
+        }
+
+        if (newVelocityY > 0 && !grounded) {
+            for (let plat of platforms) {
+                const platRect = { x: plat.x, y: plat.y, width: plat.width, height: plat.height };
+                const horizontalOverlap = playerRect.x < platRect.x + platRect.width && playerRect.x + playerRect.width > platRect.x;
+                const verticalDistance = platRect.y - (playerRect.y + playerRect.height);
+                if (horizontalOverlap && verticalDistance >= 0 && verticalDistance <= 10) {
+                    adjustedY = platRect.y - playerRect.height;
+                    newVelocityY = 0;
+                    grounded = true;
+                    break;
+                }
+            }
+        }
+
+        if (newVelocityY < 0) {
+            for (let plat of platforms) {
+                const platRect = { x: plat.x, y: plat.y, width: plat.width, height: plat.height };
+                const horizontalOverlap = playerRect.x < platRect.x + platRect.width && playerRect.x + playerRect.width > platRect.x;
+                const verticalDistance = playerRect.y - (platRect.y + platRect.height);
+                if (horizontalOverlap && verticalDistance <= 10 && verticalDistance >= -10) {
+                    adjustedY = platRect.y + platRect.height;
+                    newVelocityY = 0;
+                    break;
+                }
+            }
+        }
+
+        return { adjustedX, adjustedY, newVelocityX, newVelocityY, grounded };
+    }
+
+    function getDistance(x1, y1, x2, y2) {
+        return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'a' || event.key === 'A') {
+            leftPressed = true;
+            direction = -1;
+        }
+        if (event.key === 'd' || event.key === 'D') {
+            rightPressed = true;
+            direction = 1;
+        }
+        if ((event.key === 'w' || event.key === 'W') && (onGround || velocityY === 0)) {
+            isJumping = true;
+            velocityY = -jumpPower;
+            onGround = false;
+        }
+        if (event.key === 'Enter') {
+            if (!interfaceAbertaUmaVez) {
+                const playerX = parseInt(player.style.left) + player.offsetWidth / 2;
+                const playerY = parseInt(player.style.top) + player.offsetHeight / 2;
+                const placa = document.getElementById('placa');
+                if (placa) {
+                    const placaX = parseInt(placa.style.left) + (parseInt(placa.style.width) || 40) / 2;
+                    const placaY = parseInt(placa.style.top) + (parseInt(placa.style.height) || 12) / 2;
+                    const distance = getDistance(playerX, playerY, placaX, placaY);
+                    if (distance < 75) {
+                        document.getElementById('interface').style.display = 'block';
+                        interfaceAbertaUmaVez = true;
+                    }
+                }
+            }
+        }
+    });
+
+    document.addEventListener('keyup', (event) => {
+        if (event.key === 'a' || event.key === 'A') {
+            leftPressed = false;
+            direction = rightPressed ? 1 : 0;
+        }
+        if (event.key === 'd' || event.key === 'D') {
+            rightPressed = false;
+            direction = leftPressed ? -1 : 0;
+        }
+    });
+
+    function gameLoop() {
+        if (gameOverAtivo) return;
+        if (direction !== 0) {
+            velocityX += direction * acceleration;
+            velocityX = Math.max(-maxSpeed, Math.min(maxSpeed, velocityX));
+        } else {
+            if (velocityX > 0) {
+                velocityX -= deceleration;
+                if (velocityX < 0) velocityX = 0;
+            } else if (velocityX < 0) {
+                velocityX += deceleration;
+                if (velocityX > 0) velocityX = 0;
+            }
+        }
+
+        velocityY += gravity;
+
+        const currentX = parseInt(player.style.left || 0);
+        const currentY = parseInt(player.style.top || 0);
+        const newX = currentX + velocityX;
+        const newY = currentY + velocityY;
+
+        const { adjustedX, adjustedY, newVelocityX, newVelocityY, grounded } = checkCollisions(newX, newY);
+
+        player.style.left = `${adjustedX}px`;
+        player.style.top = `${adjustedY}px`;
+        velocityX = newVelocityX;
+        velocityY = newVelocityY;
+        onGround = grounded;
+
+        function showHitboxes() {
+            // Remove hitboxes antigas
+            document.querySelectorAll('.hitbox').forEach(h => h.remove());
+
+            platforms.forEach(plat => {
+                const div = document.createElement('div');
+                div.classList.add('hitbox');
+                div.style.left = plat.x +180+ 'px';
+                div.style.top = plat.y +45+ 'px';
+                div.style.width = plat.width + 'px';
+                div.style.height = plat.height + 'px';
+                document.body.appendChild(div);
+            });
+
+            // Hitbox do player
+            const playerHitbox = document.createElement('div');
+            playerHitbox.classList.add('hitbox');
+            playerHitbox.style.left = player.offsetLeft +178 + 'px';
+            playerHitbox.style.top = player.offsetTop +44 + 'px';
+            playerHitbox.style.width = player.offsetWidth + 'px';
+            playerHitbox.style.height = player.offsetHeight + 'px';
+            document.body.appendChild(playerHitbox);
+        }
+
+        function checkButtons(playerRect) {
+            const button1 = document.getElementById("button1");
+            const buttonPressed1 = document.getElementById("button-pressed");
+
+            const button2 = document.getElementById("button2");
+            const buttonPressed2 = document.getElementById("button-pressed2");
+
+            const button3 = document.getElementById("button3");
+            const buttonPressed3 = document.getElementById("button-pressed3");
+
+            const button4 = document.getElementById("button4");
+            const buttonPressed4 = document.getElementById("button-pressed4");
+
+
+
+                    if (button1 && isColliding(playerRect, {
+            x: parseInt(button1.style.left),
+            y: parseInt(button1.style.top),
+            width: parseInt(button1.style.width),
+            height: parseInt(button1.style.height)
+        }) && !button1Pressed) {
+
+            button1Pressed = true;
+            button1.style.display = "none";
+            if (buttonPressed1) buttonPressed1.style.display = "block";
+
+            updatePortas();
+            platforms = updatePlatforms();
+
+            // Duração total (10 segundos)
+            let duracao = 10;
+            let tempoRestante = duracao;
+
+            // Cria contador visual
+            const contador1 = document.createElement("div");
+            contador1.innerText = tempoRestante;
+            contador1.style.position = "absolute";
+            contador1.style.left = button1.style.left;
+            contador1.style.top = (parseInt(button1.style.top) - 20) + "px";
+            contador1.style.color = "red";
+            contador1.style.fontWeight = "bold";
+            contador1.style.fontFamily = "monospace";
+            contador1.style.textAlign = "center";
+            contador1.style.width = button1.style.width;
+            contador1.style.zIndex = 1000;
+            contador1.style.textShadow = "1px 1px 2px black";
+            contador1.style.pointerEvents = "none";
+            (button1.parentElement || document.body).appendChild(contador1);
+
+            const intervalo1 = setInterval(() => {
+                tempoRestante--;
+                contador1.innerText = tempoRestante;
+                if (tempoRestante <= 0) {
+                    clearInterval(intervalo1);
+                    contador1.remove();
+                }
+            }, 1000);
+
+            setTimeout(() => {
+                button1Pressed = false;
+                button1.style.display = "block";
+                if (buttonPressed1) buttonPressed1.style.display = "none";
+                updatePortas();
+                platforms = updatePlatforms();
+            }, duracao * 1000);
+        }
+
+
+        // ========================================================
+        // BOTÃO 2 — 3 segundos
+        // ========================================================
+        if (button2 && isColliding(playerRect, {
+            x: parseInt(button2.style.left),
+            y: parseInt(button2.style.top),
+            width: parseInt(button2.style.width),
+            height: parseInt(button2.style.height)
+        }) && !button2Pressed) {
+            button2Pressed = true;
+            button2.style.display = "none";
+            if (buttonPressed2) buttonPressed2.style.display = "block";
+
+            updatePortas();
+            platforms = updatePlatforms();
+
+            // Contador visual (3s)
+            let duracao = 5;
+            let tempoRestante = duracao;
+
+            const contador2 = document.createElement("div");
+            contador2.innerText = tempoRestante;
+            contador2.style.position = "absolute";
+            contador2.style.left = button2.style.left;
+            contador2.style.top = (parseInt(button2.style.top) - 20) + "px";
+            contador2.style.color = "red";
+            contador2.style.fontWeight = "bold";
+            contador2.style.fontFamily = "monospace";
+            contador2.style.textAlign = "center";
+            contador2.style.width = button2.style.width;
+            contador2.style.zIndex = 1000;
+            contador2.style.textShadow = "1px 1px 2px black";
+            contador2.style.pointerEvents = "none";
+            (button2.parentElement || document.body).appendChild(contador2);
+
+            const intervalo2 = setInterval(() => {
+                tempoRestante--;
+                contador2.innerText = tempoRestante;
+                if (tempoRestante <= 0) {
+                    clearInterval(intervalo2);
+                    contador2.remove();
+                }
+            }, 1000);
+
+            setTimeout(() => {
+                button2Pressed = false;
+                button2.style.display = "block";
+                if (buttonPressed2) buttonPressed2.style.display = "none";
+                updatePortas();
+                platforms = updatePlatforms();
+            }, 3000);
+        }
+
+
+         
+   
+
+    // ========================================================
+    // BOTÃO 3 — 30 segundos
+    // ========================================================
+
+    if (button3 && isColliding(playerRect, {
+        x: parseInt(button3.style.left),
+        y: parseInt(button3.style.top),
+        width: parseInt(button3.style.width),
+        height: parseInt(button3.style.height)
+    }) && !button3Pressed) {
+        button3Pressed = true;
+        button3.style.display = "none";
+        if (buttonPressed3) buttonPressed3.style.display = "block";
+
+        updatePortas();
+        platforms = updatePlatforms();
+
+        let duracao = 30;
+        let tempoRestantex = duracao;
+
+        const contador3 = document.createElement("div");
+        contador3.innerText = tempoRestantex;
+        contador3.style.position = "absolute";
+        contador3.style.left = button3.style.left;
+        contador3.style.top = (parseInt(button3.style.top) - 20) + "px";
+        contador3.style.color = "red";
+        contador3.style.fontWeight = "bold";
+        contador3.style.fontFamily = "monospace";
+        contador3.style.textAlign = "center";
+        contador3.style.width = button3.style.width;
+        contador3.style.zIndex = 1000;
+        contador3.style.textShadow = "1px 1px 2px black";
+        contador3.style.pointerEvents = "none";
+        (button3.parentElement || document.body).appendChild(contador3);
+
+        const intervalo3 = setInterval(() => {
+            tempoRestantex--;
+            contador3.innerText = tempoRestantex;
+            if (tempoRestantex <= 0) {
+                clearInterval(intervalo3);
+                contador3.remove();
+            }
+        }, 1000);
+
+        setTimeout(() => {
+            button3Pressed = false;
+            button3.style.display = "block";
+            if (buttonPressed3) buttonPressed3.style.display = "none";
+            updatePortas();
+            platforms = updatePlatforms();
+            tempoRestantex = 0;
+            
+        }, 30000);
+    }
+
+    // ... (botão 4 igual)
+
+
+    
+
+
+        // ========================================================
+        // BOTÃO 4 — 20 segundos
+        // ========================================================
+        if (button4 && isColliding(playerRect, {
+            x: parseInt(button4.style.left),
+            y: parseInt(button4.style.top),
+            width: parseInt(button4.style.width),
+            height: parseInt(button4.style.height)
+        }) && !button4Pressed) {
+            button4Pressed = true;
+            button4.style.display = "none";
+            if (buttonPressed4) buttonPressed4.style.display = "block";
+
+            if (!porta51Removida) {
+                porta51Removida = true;
+            }
+
+            updatePortas();
+            platforms = updatePlatforms();
+
+            // Contador visual (20s)
+            let duracao = 20;
+            let tempoRestante = duracao;
+
+            const contador4 = document.createElement("div");
+            contador4.innerText = tempoRestante;
+            contador4.style.position = "absolute";
+            contador4.style.left = button4.style.left;
+            contador4.style.top = (parseInt(button4.style.top) - 20) + "px";
+            contador4.style.color = "red";
+            contador4.style.fontWeight = "bold";
+            contador4.style.fontFamily = "monospace";
+            contador4.style.textAlign = "center";
+            contador4.style.width = button4.style.width;
+            contador4.style.zIndex = 1000;
+            contador4.style.textShadow = "1px 1px 2px black";
+            contador4.style.pointerEvents = "none";
+            (button4.parentElement || document.body).appendChild(contador4);
+
+            const intervalo4 = setInterval(() => {
+                tempoRestante--;
+                contador4.innerText = tempoRestante;
+                if (tempoRestante <= 0) {
+                    clearInterval(intervalo4);
+                    contador4.remove();
+                }
+            }, 1000);
+
+            setTimeout(() => {
+                button4Pressed = false;
+                button4.style.display = "block";
+                if (buttonPressed4) buttonPressed4.style.display = "none";
+                updatePortas();
+                platforms = updatePlatforms();
+            }, 20000);
+        }
+ }
+
+
+        checarMorteEGameOver();
+
+        requestAnimationFrame(gameLoop);
+
+      //  showHitboxes();
+
+        const playerRect = {
+            x: parseInt(player.style.left),
+            y: parseInt(player.style.top),
+            width: player.offsetWidth,
+            height: player.offsetHeight
+        };
+        checkButtons(playerRect);
+    }
+
+
+
+ // PLACAS ---------------------------------------------------------------------------------------
+
+
+
+    let perguntas = [
+        { pergunta: "* Qual dessas linhas cria uma função que retorna o dobro de um número?", opcoes: ["function dobro(x) { return x * 2; }", "function dobro(x) { x + x; }", "dobro(x) => x * 2;", "let dobro = x * 2;"], correta: 0 },
+        { pergunta: "* O que será exibido? console.log(0.1 + 0.2 === 0.3);", opcoes: ["true", "false", "undefined", "NaN"], correta: 1 },
+        { pergunta: "* Qual o tipo de dado que retorna 'true' em JavaScript?", opcoes: ["string", "number", "boolean", "object"], correta: 2 },
+        { pergunta: "* Qual palavra-chave declara uma variável que não pode ser reatribuída?", opcoes: ["var", "let", "const", "fixed"], correta: 2 },
+        { pergunta: "* Como você cria uma função em JavaScript?", opcoes: ["function minhaFuncao() {}", "def minhaFuncao(): {}", "fun minhaFuncao() {}", "func minhaFuncao() {}"], correta: 0 }
+    ];
+    
+    let indiceAtual = 0;
+    let indiceSelecionado = 0;
+    let animacaoAtiva = false;
+    let quizIniciado = false;
+    let pontuacao = 0;
+
+    function animarTexto(texto, elemento, velocidade = 50) {
+        animacaoAtiva = true;
+        elemento.textContent = '';
+        let i = 0;
+        const interval = setInterval(() => {
+            elemento.textContent += texto[i];
+            i++;
+            if (i >= texto.length) {
+                clearInterval(interval);
+                animacaoAtiva = false;
+            }
+        }, velocidade);
+    }
+
+    function carregarPergunta() {
+        const p = perguntas[indiceAtual];
+        animarTexto(p.pergunta, document.getElementById('pergunta-texto'));
+        
+        const botoes = document.querySelectorAll('.opcao');
+        botoes.forEach((btn, i) => {
+            btn.textContent = p.opcoes[i];
+            btn.classList.remove('correto', 'incorreto');
+            btn.disabled = false;
+            btn.onclick = () => {
+                if (!animacaoAtiva) verificarResposta(i);
+            };
+            btn.onmouseenter = () => {
+                if (!animacaoAtiva) moverCursor(i);
+            };
+        });
+        
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('proxima').style.display = 'none';
+        indiceSelecionado = 0;
+        moverCursor(0);
+    }
+
+                function moverCursor(indice) {
+            const cursor = document.getElementById('cursor');
+            const opcao = document.querySelectorAll('.opcao')[indice];
+            if (opcao && cursor) cursor.style.top = (opcao.offsetTop + 10) + 'px';
+        }
+
+
+    function verificarResposta(indice) {
+        const p = perguntas[indiceAtual];
+        const botoes = document.querySelectorAll('.opcao');
+        botoes.forEach((btn, i) => {
+            btn.disabled = true;
+            if (i === p.correta) btn.classList.add('correto');
+            else if (i === indice) btn.classList.add('incorreto');
+        });
+        
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = indice === p.correta ? "* Correto!" : "* Errado!";
+        feedback.className = indice === p.correta ? 'feedback correto' : 'feedback incorreto';
+        feedback.style.display = 'block';
+        
+        if (indice === p.correta){ pontuacao++; pl1++;}
+        
+        if (indiceAtual === perguntas.length - 1) {
+            document.getElementById('proxima').textContent = 'Ver Pontuação';
+        } else {
+            document.getElementById('proxima').textContent = 'Próxima';
+        }
+        document.getElementById('proxima').style.display = 'block';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (animacaoAtiva || !quizIniciado) return;
+        const botoes = document.querySelectorAll('.opcao');
+        if (e.key === 'ArrowDown') {
+            indiceSelecionado = (indiceSelecionado + 1) % 4;
+            moverCursor(indiceSelecionado);
+        } else if (e.key === 'ArrowUp') {
+            indiceSelecionado = (indiceSelecionado - 1 + 4) % 4;
+            moverCursor(indiceSelecionado);
+        } else if (e.key === 'Enter' && quizIniciado) {
+            botoes[indiceSelecionado].click();
+        }
+    });
+
+    document.getElementById('proxima').onclick = () => {
+        if (indiceAtual === perguntas.length - 1) {
+            mostrarPontuacao();
+        } else {
+            indiceAtual++;
+            carregarPergunta();
+        }
+    };
+
+    function mostrarPontuacao() {
+        objetivosCompletos++;
+        if (pontuacao==5) {
+        objetivosCompletos++;
+    }
+        document.querySelector('.quiz').style.display = 'none';
+        const telaPontuacao = document.getElementById('telaPontuacao');
+        telaPontuacao.style.display = 'block';
+        document.getElementById('pontuacao-texto').textContent = `* Sua pontuação: ${pontuacao}/${perguntas.length}\n*`;
+    }
+
+    document.getElementById('fechar').onclick = () => {
+        document.getElementById('interface').style.display = 'none';
+        indiceAtual = 0;
+     //   pontuacao = 0;
+        quizIniciado = false;
+        document.getElementById('telaPontuacao').style.display = 'none';
+        document.querySelector('.quiz').style.display = 'block';
+        document.getElementById('porta3').remove();
+        platforms = updatePlatforms();
+    };
+
+    const interfaceElement = document.getElementById('interface');
+    const observer = new MutationObserver(() => {
+        if (interfaceElement.style.display === 'block' && !quizIniciado) {
+            quizIniciado = true;
+            carregarPergunta();
+        } else if (interfaceElement.style.display === 'none') {
+            quizIniciado = false;
+        }
+    });
+    observer.observe(interfaceElement, { attributes: true, attributeFilter: ['style'] });
+    
+
+    //placa2============================================
+
+    // --------------------- PLACA 2 (corrigido) ---------------------
+
+let perguntas2 = [
+    { 
+        pergunta: "* Qual destas linhas cria uma variável \$nome com o valor 'Usuário'?", 
+        opcoes: [
+            "$nome = 'Usuário';", 
+            "let nome = 'Usuário';", 
+            "var nome = 'Usuario';", 
+            "nome := 'Usuário';"
+        ], 
+        correta: 0 
+    },
+    { 
+        pergunta: "* Qual função retorna o número de elementos de um array \$arr?", 
+        opcoes: [
+            "count(\$arr)", 
+            "size(\$arr)", 
+            "length(\$arr)", 
+            "sizeofArray(\$arr)"
+        ], 
+        correta: 0 
+    },
+    { 
+        pergunta: "* Qual operador é usado para concatenar strings em PHP?", 
+        opcoes: [
+            "+", 
+            ".", 
+            "&", 
+            "concat()"
+        ], 
+        correta: 1 
+    },
+    { 
+        pergunta: "* O que será exibido? <?php echo 5 + 3; ?>", 
+        opcoes: [
+            "53", 
+            "8", 
+            "Erro", 
+            "5+3"
+        ], 
+        correta: 1 
+    },
+    { 
+        pergunta: "* Qual função transforma uma string em letras maiúsculas?", 
+        opcoes: [
+            "strtoupper()", 
+            "upper()", 
+            "toUpperCase()", 
+            "uppercase()"
+        ], 
+        correta: 0 
+    }
+];
+
+
+
+let indiceAtual2 = 0;
+let indiceSelecionado2 = 0;
+let animacaoAtiva2 = false;
+let quizIniciado2 = false;
+let pontuacao2 = 0;
+
+function animarTexto2(texto, elemento, velocidade = 50) {
+    animacaoAtiva2 = true;
+    elemento.textContent = '';
+    let i = 0;
+    const interval = setInterval(() => {
+        // caso texto seja curto, evita erro
+        if (i >= texto.length) {
+            clearInterval(interval);
+            animacaoAtiva2 = false;
+            return;
+        }
+        elemento.textContent += texto[i];
+        i++;
+        if (i >= texto.length) {
+            clearInterval(interval);
+            animacaoAtiva2 = false;
+        }
+    }, velocidade);
+}
+
+function carregarPergunta2() {
+    const p2 = perguntas2[indiceAtual2];
+    const perguntaEl = document.getElementById('pergunta-texto2');
+    animarTexto2(p2.pergunta, perguntaEl);
+
+    const botoes2 = document.querySelectorAll('.opcao2');
+    botoes2.forEach((btn, i) => {
+    btn.textContent = p2.opcoes[i];
+    btn.classList.remove('correto', 'incorreto');
+    btn.disabled = false;
+    btn.style.pointerEvents = 'auto'; // garante clique
+    btn.onclick = () => {
+        if (!animacaoAtiva2 && quizIniciado2) {
+            verificarResposta2(i);
+        }
+    };
+    btn.onmouseenter = () => {
+        if (!animacaoAtiva2 && quizIniciado2) moverCursor2(i);
+    };
+});
+
+    const feedback2 = document.getElementById('feedback2');
+    feedback2.style.display = 'none';
+    document.getElementById('proxima2').style.display = 'none';
+    indiceSelecionado2 = 0;
+    moverCursor2(0);
+}
+
+function moverCursor2(indice) {
+    const cursor2 = document.getElementById('cursor2');
+    const opcao2 = document.querySelectorAll('.opcao2')[indice];
+    if (opcao2 && cursor2) cursor2.style.top = (opcao2.offsetTop + 10) + 'px';
+}
+
+function verificarResposta2(indice) {
+    const p2 = perguntas2[indiceAtual2];
+    const botoes2 = document.querySelectorAll('.opcao2');
+    botoes2.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === p2.correta) btn.classList.add('correto');
+        else if (i === indice) btn.classList.add('incorreto');
+    });
+
+    const feedback2 = document.getElementById('feedback2');
+    feedback2.textContent = (indice === p2.correta) ? "* Correto!" : "* Errado!";
+    feedback2.className = (indice === p2.correta) ? 'feedback2 correto' : 'feedback2 incorreto';
+    feedback2.style.display = 'block';
+
+    if (indice === p2.correta){ pontuacao2++; pl2++;}
+
+    const proxima2 = document.getElementById('proxima2');
+    if (indiceAtual2 === perguntas2.length - 1) {
+        proxima2.textContent = 'Ver Pontuação';
+    } else {
+        proxima2.textContent = 'Próxima';
+    }
+    proxima2.style.display = 'block';
+}
+
+document.addEventListener('keydown', (e) => {
+    // listener compartilhado: só ativa se quizIniciado2 for true
+    if (animacaoAtiva2 || !quizIniciado2) return;
+    const botoes2 = document.querySelectorAll('.opcao2');
+    if (e.key === 'ArrowDown') {
+        indiceSelecionado2 = (indiceSelecionado2 + 1) % 4;
+        moverCursor2(indiceSelecionado2);
+    } else if (e.key === 'ArrowUp') {
+        indiceSelecionado2 = (indiceSelecionado2 - 1 + 4) % 4;
+        moverCursor2(indiceSelecionado2);
+    } else if (e.key === 'Enter' && quizIniciado2) {
+        botoes2[indiceSelecionado2].click();
+    }
+});
+
+document.getElementById('proxima2').onclick = () => {
+    if (indiceAtual2 === perguntas2.length - 1) {
+        mostrarPontuacao2();
+    } else {
+        indiceAtual2++;
+        carregarPergunta2();
+    }
+};
+
+function mostrarPontuacao2() {
+    objetivosCompletos++;
+
+    if (pontuacao2==5) {
+        objetivosCompletos++;
+    }
+    document.querySelector('.quiz2').style.display = 'none';
+    const telaPontuacao2 = document.getElementById('telaPontuacao2');
+    telaPontuacao2.style.display = 'block';
+    document.getElementById('pontuacao-texto2').textContent = `* Sua pontuação: ${pontuacao2}/${perguntas2.length}\n*`;
+}
+
+document.getElementById('fechar2').onclick = () => {
+    document.getElementById('interface2').style.display = 'none';
+    indiceAtual2 = 0;
+  //  pontuacao2 = 0;
+    quizIniciado2 = false;
+    document.getElementById('telaPontuacao2').style.display = 'none';
+    document.querySelector('.quiz2').style.display = 'block';
+    document.getElementById('porta6').remove();
+        platforms = updatePlatforms();
+    criarChaoLava();
+    // se quiser fazer algo quando fechar (ex: remover plataforma), coloca aqui
+};
+
+// Observer que abre o quiz2 quando interface2 aparece
+const interfaceElement2 = document.getElementById('interface2');
+const observer2 = new MutationObserver(() => {
+    if (!interfaceElement2) return;
+    if (interfaceElement2.style.display === 'block' && !quizIniciado2) {
+        quizIniciado2 = true;
+        carregarPergunta2();
+    } else if (interfaceElement2.style.display === 'none') {
+        quizIniciado2 = false;
+    }
+});
+if (interfaceElement2) observer2.observe(interfaceElement2, { attributes: true, attributeFilter: ['style'] });
+
+// função para abrir a interface2 quando o jogador estiver perto da placa2
+function tryOpenPlaca2(playerX, playerY) {
+    const placa2 = document.getElementById('placa2');
+    if (!placa2) return;
+    const placaX = parseInt(placa2.style.left || 0) + (parseInt(placa2.style.width) || 0) / 2;
+    const placaY = parseInt(placa2.style.top || 0) + (parseInt(placa2.style.height) || 0) / 2;
+    const dx = playerX - placaX;
+    const dy = playerY - placaY;
+    const distance = Math.sqrt(dx*dx + dy*dy);
+    if (distance < 75) {
+        const iface2 = document.getElementById('interface2');
+        if (iface2) iface2.style.display = 'block';
+    }
+}
+
+let placa2Aberta = false; // impede reabrir depois de usada
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !placa2Aberta) {
+        const player = document.getElementById("player");
+        const placa2 = document.getElementById("placa2");
+        const interface2 = document.getElementById("interface2");
+
+        if (player && placa2 && interface2) {
+            const playerRect = player.getBoundingClientRect();
+            const placaRect = placa2.getBoundingClientRect();
+
+            const distancia = Math.hypot(
+                playerRect.x - placaRect.x,
+                playerRect.y - placaRect.y
+            );
+
+            if (distancia < 75) {
+                interface2.style.display = "block";
+                quizIniciado2 = true;
+                carregarPergunta2();
+                placa2Aberta = true; // marca como aberta
+            }
+        }
+    }
+});
+
+         // PLACA 3 -----------------------------------------------------
+   let perguntas3 = [
+    { pergunta: "* Qual símbolo é usado para comentários em Lua?", 
+      opcoes: ["//", "--", "#", "/* */"], correta: 1 },
+      
+    { pergunta: "* Como você cria uma variável em Lua?", 
+      opcoes: ["let x = 10", "var x = 10", "x = 10", "int x = 10"], correta: 2 },
+      
+    { pergunta: "* Qual desses é um tipo de dado em Lua?", 
+      opcoes: ["string", "boolean", "number", "Todas as anteriores"], correta: 3 },
+      
+    { pergunta: "* Como se escreve uma função em Lua?", 
+      opcoes: ["function minhaFuncao() end", "def minhaFuncao(): end", "func minhaFuncao() {}", "fun minhaFuncao() end"], correta: 0 },
+      
+    { pergunta: "* Qual operador serve para concatenação de strings em Lua?", 
+      opcoes: ["+", "&", "..", "concat()"], correta: 2 },
+      
+    { pergunta: "* Como se escreve uma estrutura condicional simples?", 
+      opcoes: ["if x > 5 then print(x) end", "if x > 5 { print(x) }", "if x > 5: print(x)", "if x > 5 do print(x)"], correta: 0 },
+      
+    { pergunta: "* Como se cria uma tabela (array/dicionário) em Lua?", 
+      opcoes: ["[]", "{}", "()", "<>"], correta: 1 },
+      
+    { pergunta: "* Qual desses loops existe em Lua?", 
+      opcoes: ["for", "while", "repeat...until", "Todas as anteriores"], correta: 3 },
+      
+    { pergunta: "* Qual função imprime algo na tela em Lua?", 
+      opcoes: ["echo()", "print()", "console.log()", "write()"], correta: 1 },
+      
+    { pergunta: "* Em Lua, qual valor representa falso?", 
+      opcoes: ["nil", "false", "0", "nil e false"], correta: 3 }
+];
+
+
+
+let indiceAtual3 = 0;
+let indiceSelecionado3 = 0;
+let animacaoAtiva3 = false;
+let quizIniciado3 = false;
+let pontuacao3 = 0;
+
+function animarTexto3(texto, elemento, velocidade = 50) {
+    animacaoAtiva3 = true;
+    elemento.textContent = '';
+    let i = 0;
+    const interval = setInterval(() => {
+        elemento.textContent += texto[i];
+        i++;
+        if (i >= texto.length) {
+            clearInterval(interval);
+            animacaoAtiva3 = false;
+        }
+    }, velocidade);
+}
+
+function carregarPergunta3() {
+    const p = perguntas3[indiceAtual3];
+    animarTexto3(p.pergunta, document.getElementById('pergunta-texto3'));
+    
+    const botoes = document.querySelectorAll('.opcao3');
+    botoes.forEach((btn, i) => {
+        btn.textContent = p.opcoes[i];
+        btn.classList.remove('correto', 'incorreto');
+        btn.disabled = false;
+        btn.onclick = () => {
+            if (!animacaoAtiva3) verificarResposta3(i);
+        };
+        btn.onmouseenter = () => {
+            if (!animacaoAtiva3) moverCursor3(i);
+        };
+    });
+
+    const feedback = document.getElementById('feedback3');
+    feedback.style.display = 'none';
+    document.getElementById('proxima3').style.display = 'none';
+    indiceSelecionado3 = 0;
+    moverCursor3(0);
+}
+
+function moverCursor3(indice) {
+    const cursor = document.getElementById('cursor3');
+    const opcao = document.querySelectorAll('.opcao3')[indice];
+    if (opcao && cursor) cursor.style.top = (opcao.offsetTop + 10) + 'px';
+}
+
+function verificarResposta3(indice) {
+    const p = perguntas3[indiceAtual3];
+    const botoes = document.querySelectorAll('.opcao3');
+    botoes.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === p.correta) btn.classList.add('correto');
+        else if (i === indice) btn.classList.add('incorreto');
+    });
+    
+    const feedback = document.getElementById('feedback3');
+    feedback.textContent = indice === p.correta ? "* Correto!" : "* Errado!";
+    feedback.className = indice === p.correta ? 'feedback3 correto' : 'feedback3 incorreto';
+    feedback.style.display = 'block';
+    
+    if (indice === p.correta) {pontuacao3++; pl3++; }
+
+    const proximaBtn = document.getElementById('proxima3');
+    proximaBtn.textContent = indiceAtual3 === perguntas3.length - 1 ? 'Ver Pontuação' : 'Próxima';
+    proximaBtn.style.display = 'block';
+}
+
+document.addEventListener('keydown', (e) => {
+    if (animacaoAtiva3 || !quizIniciado3) return;
+    const botoes = document.querySelectorAll('.opcao3');
+    if (e.key === 'ArrowDown') {
+        indiceSelecionado3 = (indiceSelecionado3 + 1) % 4;
+        moverCursor3(indiceSelecionado3);
+    } else if (e.key === 'ArrowUp') {
+        indiceSelecionado3 = (indiceSelecionado3 - 1 + 4) % 4;
+        moverCursor3(indiceSelecionado3);
+    } else if (e.key === 'Enter' && quizIniciado3) {
+        botoes[indiceSelecionado3].click();
+    }
+});
+
+document.getElementById('proxima3').onclick = () => {
+    if (indiceAtual3 === perguntas3.length - 1) {
+        mostrarPontuacao3();
+    } else {
+        indiceAtual3++;
+        carregarPergunta3();
+    }
+};
+
+function mostrarPontuacao3() {
+    objetivosCompletos++;
+        if (pontuacao3>=5) {
+        objetivosCompletos++;
+    }
+    document.querySelector('.quiz3').style.display = 'none';
+    const telaPontuacao = document.getElementById('telaPontuacao3');
+    telaPontuacao.style.display = 'block';
+    document.getElementById('pontuacao-texto3').textContent = `* Sua pontuação: ${pontuacao3}/${perguntas3.length}`;
+}
+
+
+
+// Função para tentar abrir a placa3 quando o jogador estiver perto
+function tryOpenPlaca3(playerX, playerY) {
+    const placa3 = document.getElementById('placa3');
+    if (!placa3) return;
+
+    const placaX = parseInt(placa3.style.left || 0) + (parseInt(placa3.style.width) || 0) / 2;
+    const placaY = parseInt(placa3.style.top || 0) + (parseInt(placa3.style.height) || 0) / 2;
+
+    const dx = playerX - placaX;
+    const dy = playerY - placaY;
+    const distance = Math.sqrt(dx*dx + dy*dy);
+
+    if (distance < 75) {
+        const iface3 = document.getElementById('interface3');
+        if (iface3) iface3.style.display = 'block';
+    }
+}
+
+let placa3Aberta = false; // impede reabrir depois de usada
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Enter" && !placa3Aberta) {
+        const player = document.getElementById("player");
+        const placa3 = document.getElementById("placa3");
+        const interface3 = document.getElementById("interface3");
+
+        if (player && placa3 && interface3) {
+            const playerX = parseInt(player.style.left || 0) + player.offsetWidth / 2;
+            const playerY = parseInt(player.style.top || 0) + player.offsetHeight / 2;
+
+            const placaX = parseInt(placa3.style.left || 0) + (parseInt(placa3.style.width) || 0) / 2;
+            const placaY = parseInt(placa3.style.top || 0) + (parseInt(placa3.style.height) || 0) / 2;
+
+            const distancia = Math.sqrt((playerX - placaX)**2 + (playerY - placaY)**2);
+
+            if (distancia < 75) {
+                interface3.style.display = "block";
+                quizIniciado3 = true;
+                carregarPergunta3();
+                placa3Aberta = true; // marca como aberta
+            }
+        }
+    }
+});
+
+
+document.getElementById('fechar3').onclick = () => { 
+    // Fecha o quiz normalmente
+    document.getElementById('interface3').style.display = 'none';
+    indiceAtual3 = 0;
+    quizIniciado3 = false;
+   // pontuacao3 = 0;
+    document.getElementById('telaPontuacao3').style.display = 'none';
+    document.querySelector('.quiz3').style.display = 'block';
+
+    // Agora chama o Game Over
+    mostrarGameOver();
+};
+    gameLoop();
+
+
+</script>
+
+
+ <!-- deu um trabalho desgraçado pra fazer esse código, da uma nota boa psor😭😭 -->
+
+
+</body>
+</html>
